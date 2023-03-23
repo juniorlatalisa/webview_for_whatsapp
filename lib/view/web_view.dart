@@ -1,39 +1,61 @@
+import 'dart:io';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
-import 'package:webview_for_whatsapp/widget/alert_dialog.dart';
 
-class WebView extends StatefulWidget {
-  const WebView({super.key});
+class WebViewForWhats extends StatefulWidget {
+  const WebViewForWhats({super.key});
 
   @override
-  State<WebView> createState() => _WebViewState();
+  State<WebViewForWhats> createState() => _WebViewForWhatsState();
 }
 
-class _WebViewState extends State<WebView> {
+class _WebViewForWhatsState extends State<WebViewForWhats> {
   late final WebViewController _controller;
 
-  var initializaed = false;
+  var _initializaed = false;
+  var _success = false;
 
   Future<void> _showMyDialog(dynamic error) async {
-    return showDialog<void>(
-      context: context,
-      barrierDismissible: false, // user must tap button!
-      builder: (BuildContext context) {
-        return const CustomAlertDialog();
-      },
-    );
+    final String message;
+    if (error is SocketException) {
+      final SocketException se = error;
+      message = se.message;
+    } else if (error is WebResourceError) {
+      final WebResourceError wre = error;
+      message = wre.description;
+    } else {
+      message = 'Erro';
+    }
+    _onSuccess(message);
+    // return showDialog<void>(
+    //   context: context,
+    //   barrierDismissible: false, // user must tap button!
+    //   builder: (BuildContext context) {
+    //     return const CustomAlertDialog();
+    //   },
+    // );
+  }
+
+  _onSuccess(final String message) {
+    return _controller.runJavaScript('WebView4WhatsApp.onSuccess("$message");');
+  }
+
+  _setStatus(final String message) {
+    return _controller.runJavaScript('WebView4WhatsApp.setStatus("$message");');
   }
 
   void _onPageFinished(
       final String userAgent, final assetIndex, final String finishedUrl) {
     setState(() {
       if (finishedUrl.endsWith(assetIndex)) {
+        _setStatus('Iniciando WhatsApp Web...');
         _loadWhatsAppWeb(userAgent);
-      } else if (!initializaed) {
-        initializaed = true;
+      } else if (!_initializaed && _success) {
+        _initializaed = true;
         SystemChrome.setPreferredOrientations([
           DeviceOrientation.landscapeRight,
           DeviceOrientation.landscapeLeft,
@@ -43,7 +65,7 @@ class _WebViewState extends State<WebView> {
   }
 
   void _loadWhatsAppWeb(final String userAgent) {
-    const baseUrl = 'https://web.whatsapp.com/';
+    const baseUrl = 'https://127.0.0.2/';
     final uri = Uri.parse(baseUrl);
     final Map<String, String> headers = <String, String>{
       'Host': 'web.whatsapp.com',
@@ -60,6 +82,8 @@ class _WebViewState extends State<WebView> {
       'Connection': 'keep-alive',
     };
     http.read(uri, headers: headers).then((contents) {
+      _onSuccess('WhatsApp Web');
+      _success = true;
       _controller.loadHtmlString(contents, baseUrl: baseUrl);
     }).catchError((error) {
       _showMyDialog(error);
@@ -69,6 +93,7 @@ class _WebViewState extends State<WebView> {
   @override
   void initState() {
     super.initState();
+
     late final PlatformWebViewControllerCreationParams params;
     if (WebViewPlatform.instance is WebKitWebViewPlatform) {
       params = WebKitWebViewControllerCreationParams(
@@ -83,7 +108,8 @@ class _WebViewState extends State<WebView> {
         WebViewController.fromPlatformCreationParams(params);
 
     const assetIndex = 'assets/www/index.html';
-    const String userAgent = 'Mozilla/5.0 Gecko/20100101 Firefox/110.0';
+    const String userAgent =
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:109.0) Gecko/20100101 Firefox/110.0';
 
     final NavigationDelegate delegate = NavigationDelegate(
       onPageFinished: (url) => _onPageFinished(userAgent, assetIndex, url),
