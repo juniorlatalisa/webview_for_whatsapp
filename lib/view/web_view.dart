@@ -5,6 +5,7 @@ import 'package:flutter/services.dart';
 import 'package:http/http.dart' as http;
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'package:webview_for_whatsapp/widget/alert_dialog.dart';
 
 class WebViewForWhats extends StatefulWidget {
   const WebViewForWhats({super.key});
@@ -19,29 +20,27 @@ class _WebViewForWhatsState extends State<WebViewForWhats> {
   var _initializaed = false;
   var _success = false;
 
-  Future<void> _showMyDialog(dynamic error) async {
-    final String message;
+  Future<void> _showError(dynamic error) async {
     if (error is SocketException) {
       final SocketException se = error;
-      message = se.message;
-    } else if (error is WebResourceError) {
-      final WebResourceError wre = error;
-      message = wre.description;
-    } else {
-      message = 'Erro';
+      return _onSuccess(se.message, false);
     }
-    _onSuccess(message);
-    // return showDialog<void>(
-    //   context: context,
-    //   barrierDismissible: false, // user must tap button!
-    //   builder: (BuildContext context) {
-    //     return const CustomAlertDialog();
-    //   },
-    // );
+
+    if (error is WebResourceError) {
+      final WebResourceError wre = error;
+      return showDialog<void>(
+        context: context,
+        barrierDismissible: false, // user must tap button!
+        builder: (BuildContext context) {
+          return const CustomAlertDialog();
+        },
+      );
+    }
   }
 
-  _onSuccess(final String message) {
-    return _controller.runJavaScript('WebView4WhatsApp.onSuccess("$message");');
+  _onSuccess(final String message, final bool success) {
+    return _controller
+        .runJavaScript('WebView4WhatsApp.onSuccess("$message", $success);');
   }
 
   _setStatus(final String message) {
@@ -65,7 +64,7 @@ class _WebViewForWhatsState extends State<WebViewForWhats> {
   }
 
   void _loadWhatsAppWeb(final String userAgent) {
-    const baseUrl = 'https://127.0.0.2/';
+    const baseUrl = 'https://web.whatsapp.com/';
     final uri = Uri.parse(baseUrl);
     final Map<String, String> headers = <String, String>{
       'Host': 'web.whatsapp.com',
@@ -82,11 +81,11 @@ class _WebViewForWhatsState extends State<WebViewForWhats> {
       'Connection': 'keep-alive',
     };
     http.read(uri, headers: headers).then((contents) {
-      _onSuccess('WhatsApp Web');
+      _onSuccess('WhatsApp Web', true);
       _success = true;
       _controller.loadHtmlString(contents, baseUrl: baseUrl);
     }).catchError((error) {
-      _showMyDialog(error);
+      _showError(error);
     });
   }
 
@@ -113,7 +112,7 @@ class _WebViewForWhatsState extends State<WebViewForWhats> {
 
     final NavigationDelegate delegate = NavigationDelegate(
       onPageFinished: (url) => _onPageFinished(userAgent, assetIndex, url),
-      onWebResourceError: (error) => _showMyDialog(error),
+      onWebResourceError: (error) => _showError(error),
     );
 
     controller

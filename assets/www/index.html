@@ -56,22 +56,26 @@
             top: calc(20vh + 39px);
             left: 5vw;
             border-radius: 0.5em;
-            -webkit-border-radius: 0.5em;
-            -moz-border-radius: 0.5em;
-            box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5);
-            -webkit-box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5);
-            -moz-box-shadow: 0px 1px 3px rgba(0, 0, 0, 0.5);
             font-size: 2em;
         }
 
         .card span {
-            margin: 10vw;
+            margin: 0 10vw 0 10vw;
             text-align: center;
         }
 
         .card progress {
             width: 70vw;
             font-size: 2em;
+        }
+
+        .card a {
+            font-size: 3em;
+            cursor: pointer;
+        }
+
+        .card a:active {
+            transform: translateY(4px);
         }
     </style>
     <script>
@@ -81,16 +85,19 @@
                 return document.getElementById('lblStatus');
             }
 
-            function _onSuccess(label) {
+            function _onSuccess(label, success) {
                 const pgbStatus = document.getElementById('pgbStatus');
-                pgbStatus.max=100;
-                pgbStatus.value=100;
+                const btnReload = document.getElementById('btnReload');
                 _lblStatus().innerText = label;
+                pgbStatus.max = 100;
+                pgbStatus.value = 100;
+                console.log(success, !!success);
+                btnReload.style.display = (!!success) ? 'none' : 'block' ;
             }
 
             return Object.freeze({
                 setStatus: (label) => _lblStatus().innerText = label,
-                onSuccess: (label) => _onSuccess(label),
+                onSuccess: (label, success) => _onSuccess(label, success),
                 onClose: (sender) => console.log(sender)
             });
         }();
@@ -113,6 +120,7 @@
     <div class="card">
         <span id="lblStatus">Aguarde...</span>
         <progress id="pgbStatus"></progress>
+        <a id="btnReload" onclick="window.location.reload()" style="display: none;">&#128260;</a>
     </div>
 </body>
 
