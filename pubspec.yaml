@@ -38,6 +38,7 @@ dependencies:
   webview_flutter: ^4.0.7
   path_provider: ^2.0.14
   webview_flutter_wkwebview: ^3.2.2
+  local_auth: ^2.1.6
   http: any
 
 
